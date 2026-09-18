@@ -1,0 +1,232 @@
+{
+  "report_id": "rpt_1789710275243025000_1",
+  "contract_version": "1.0",
+  "generated_at": "2026-09-18T05:44:35Z",
+  "currency": "USD",
+  "summary": {
+    "psp_count": 7,
+    "ledger_count": 6,
+    "matched_count": 1,
+    "discrepancy_count": 6,
+    "by_severity": {
+      "high": 3,
+      "low": 1,
+      "medium": 2
+    },
+    "by_type": {
+      "AMOUNT_MISMATCH": 1,
+      "DUPLICATE_IN_PSP": 1,
+      "FEE_MISMATCH": 1,
+      "MISSING_IN_LEDGER": 1,
+      "MISSING_IN_PSP": 1,
+      "STATUS_MISMATCH": 1
+    },
+    "total_monetary_impact": {
+      "amount_minor": 21650,
+      "currency": "USD"
+    }
+  },
+  "discrepancies": [
+    {
+      "id": "disc_f90b83ec7e14",
+      "type": "DUPLICATE_IN_PSP",
+      "severity": "high",
+      "match_key": "TXN-1007",
+      "psp_record": {
+        "match_key": "TXN-1007",
+        "external_id": "TXN-1007",
+        "source": "psp",
+        "amount": {
+          "amount_minor": 9000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 270,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T10:09:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 9000,
+        "currency": "USD"
+      },
+      "detail": "match key \"TXN-1007\" appears 2 times in PSP settlement"
+    },
+    {
+      "id": "disc_53cb732c0be7",
+      "type": "MISSING_IN_PSP",
+      "severity": "high",
+      "match_key": "TXN-1004",
+      "ledger_record": {
+        "match_key": "TXN-1004",
+        "external_id": "L-4",
+        "source": "ledger",
+        "amount": {
+          "amount_minor": 7500,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 0,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T00:00:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 7500,
+        "currency": "USD"
+      },
+      "detail": "ledger transaction L-4 (75.00 USD) has no PSP settlement entry"
+    },
+    {
+      "id": "disc_100f951f635c",
+      "type": "MISSING_IN_LEDGER",
+      "severity": "high",
+      "match_key": "TXN-1003",
+      "psp_record": {
+        "match_key": "TXN-1003",
+        "external_id": "TXN-1003",
+        "source": "psp",
+        "amount": {
+          "amount_minor": 5000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 150,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T10:06:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 5000,
+        "currency": "USD"
+      },
+      "detail": "PSP transaction TXN-1003 (50.00 USD) has no ledger entry"
+    },
+    {
+      "id": "disc_fb97b86ec67d",
+      "type": "AMOUNT_MISMATCH",
+      "severity": "medium",
+      "match_key": "TXN-1002",
+      "psp_record": {
+        "match_key": "TXN-1002",
+        "external_id": "TXN-1002",
+        "source": "psp",
+        "amount": {
+          "amount_minor": 20000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 400,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T10:05:00Z"
+      },
+      "ledger_record": {
+        "match_key": "TXN-1002",
+        "external_id": "L-2",
+        "source": "ledger",
+        "amount": {
+          "amount_minor": 19900,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 400,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T00:00:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 100,
+        "currency": "USD"
+      },
+      "detail": "amount mismatch: PSP 200.00 USD vs ledger 199.00 USD"
+    },
+    {
+      "id": "disc_fb9bd70c2c0f",
+      "type": "STATUS_MISMATCH",
+      "severity": "medium",
+      "match_key": "TXN-1006",
+      "psp_record": {
+        "match_key": "TXN-1006",
+        "external_id": "TXN-1006",
+        "source": "psp",
+        "amount": {
+          "amount_minor": 12000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 360,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T10:08:00Z"
+      },
+      "ledger_record": {
+        "match_key": "TXN-1006",
+        "external_id": "L-6",
+        "source": "ledger",
+        "amount": {
+          "amount_minor": 12000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 360,
+          "currency": "USD"
+        },
+        "status": "refunded",
+        "timestamp": "2026-01-15T00:00:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 0,
+        "currency": "USD"
+      },
+      "detail": "status mismatch: PSP \"settled\" vs ledger \"refunded\""
+    },
+    {
+      "id": "disc_4af1028333f9",
+      "type": "FEE_MISMATCH",
+      "severity": "low",
+      "match_key": "TXN-1005",
+      "psp_record": {
+        "match_key": "TXN-1005",
+        "external_id": "TXN-1005",
+        "source": "psp",
+        "amount": {
+          "amount_minor": 8000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 500,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T10:07:00Z"
+      },
+      "ledger_record": {
+        "match_key": "TXN-1005",
+        "external_id": "L-5",
+        "source": "ledger",
+        "amount": {
+          "amount_minor": 8000,
+          "currency": "USD"
+        },
+        "fee": {
+          "amount_minor": 450,
+          "currency": "USD"
+        },
+        "status": "settled",
+        "timestamp": "2026-01-15T00:00:00Z"
+      },
+      "monetary_impact": {
+        "amount_minor": 50,
+        "currency": "USD"
+      },
+      "detail": "fee mismatch: PSP 5.00 USD vs ledger 4.50 USD"
+    }
+  ]
+}
