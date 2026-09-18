@@ -158,6 +158,71 @@ def test_verifier_gathered_evidence_is_recorded():
     assert any(e.startswith("[verifier]") and "get_events" in e for e in inv.evidence), inv.evidence
 
 
+def test_null_or_missing_type_is_tolerated():
+    from recon_agent.models import Discrepancy, DiscrepancyType
+
+    base = {"id": "d", "severity": "high", "match_key": "K",
+            "monetary_impact": {"amount_minor": 1, "currency": "USD"}, "detail": "x"}
+    missing = Discrepancy.model_validate(base)  # no "type" key at all
+    assert missing.type == DiscrepancyType.OTHER
+    null = Discrepancy.model_validate({**base, "type": None})
+    assert null.type == DiscrepancyType.OTHER
+
+
+def test_escalated_count_is_serialized_to_json(agent, report):
+    import json as _json
+
+    result = agent.run(report)
+    data = _json.loads(result.model_dump_json())
+    assert "escalated_count" in data  # exposed to JSON/API consumers, not just the CLI text view
+    assert data["escalated_count"] == result.escalated_count
+
+
+def test_cli_handles_bom_prefixed_file(tmp_path, capsys):
+    from pathlib import Path
+
+    from recon_agent import cli
+
+    fixture = Path(__file__).parent / "fixtures" / "example-report.json"
+    bom_file = tmp_path / "bom-report.json"
+    bom_file.write_bytes(b"\xef\xbb\xbf" + fixture.read_bytes())
+    rc = cli.main([str(bom_file), "--format", "json"])
+    assert rc == 0  # BOM tolerated, not misread as a filename -> no crash
+    assert '"source_report_id"' in capsys.readouterr().out
+
+
+def test_cli_missing_file_exits_cleanly(capsys):
+    from recon_agent import cli
+
+    rc = cli.main(["/nonexistent/report.json"])
+    assert rc == 1
+    assert "cannot read report" in capsys.readouterr().err
+
+
+def test_print_utf8_falls_back_on_non_utf8_stdout(monkeypatch):
+    import io
+
+    from recon_agent import cli
+
+    class AsciiStdout:
+        def __init__(self):
+            self.buffer = io.BytesIO()
+
+        def reconfigure(self, **kwargs):
+            raise AttributeError  # simulate a stream that can't be reconfigured
+
+        def write(self, s):
+            raise UnicodeEncodeError("ascii", s, 0, 1, "ordinal not in range(128)")
+
+        def flush(self):
+            pass
+
+    fake = AsciiStdout()
+    monkeypatch.setattr("sys.stdout", fake)
+    cli._print_utf8("✓ done")  # must not raise
+    assert "✓ done".encode() in fake.buffer.getvalue()
+
+
 def test_cli_reads_report_from_stdin(monkeypatch, capsys):
     from pathlib import Path
 

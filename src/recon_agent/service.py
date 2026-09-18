@@ -10,11 +10,15 @@ key. Run with: ``uvicorn recon_agent.service:app``.
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, HTTPException
 
 from .knowledge import KnowledgeBase
 from .models import InvestigationReport, Report
 from .runtime import build_agent
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="recon-dispute-agent",
@@ -39,5 +43,7 @@ def investigate(report: Report) -> InvestigationReport:
     try:
         return agent.run(report)
     except Exception as exc:  # e.g. Claude unreachable/unauthenticated in anthropic mode
-        # Fail with a clean 502 rather than leaking a traceback as a 500.
-        raise HTTPException(status_code=502, detail=f"agent execution failed: {exc}") from exc
+        # Log the detail server-side; return a clean, generic 502 without leaking
+        # internal/backend error text (or a 500 traceback) to the caller.
+        logger.exception("agent execution failed")
+        raise HTTPException(status_code=502, detail="agent execution failed") from exc

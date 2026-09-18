@@ -126,7 +126,7 @@ recommended action. See [`models.py`](src/recon_agent/models.py).
 ## Testing
 
 ```bash
-make test    # pytest (37 tests, no network)
+make test    # pytest (42 tests, no network)
 make lint    # ruff + mypy
 ```
 

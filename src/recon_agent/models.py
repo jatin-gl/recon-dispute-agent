@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 # --------------------------------------------------------------------------- #
 # Data contract (input) — see the engine's docs/data-contract.md
@@ -110,11 +110,14 @@ class Discrepancy(BaseModel):
             return data
         known_types = {e.value for e in DiscrepancyType}
         t = data.get("type")
-        if isinstance(t, str) and t not in known_types:
-            data = {**data, "type": DiscrepancyType.OTHER.value, "raw_type": t}
+        if not (isinstance(t, str) and t in known_types):
+            # Unknown, missing, null, or non-string type -> OTHER, preserving the
+            # original string if there was one. Never drop the whole report.
+            data = {**data, "type": DiscrepancyType.OTHER.value,
+                    "raw_type": t if isinstance(t, str) else None}
         known_sev = {e.value for e in Severity}
         s = data.get("severity")
-        if isinstance(s, str) and s not in known_sev:
+        if not (isinstance(s, str) and s in known_sev):
             data = {**data, "severity": Severity.HIGH.value}
         return data
 
@@ -202,6 +205,8 @@ class InvestigationReport(BaseModel):
     contract_version: str
     investigations: list[Investigation]
 
+    # Serialized into JSON / the FastAPI response, not just the CLI text view.
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def escalated_count(self) -> int:
         return sum(1 for i in self.investigations if i.escalated)

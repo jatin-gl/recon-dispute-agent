@@ -1,7 +1,7 @@
 {
-  "report_id": "rpt_1789715656671239000_1",
+  "report_id": "rpt_1789719579487144000_1",
   "contract_version": "1.0",
-  "generated_at": "2026-09-18T07:14:16Z",
+  "generated_at": "2026-09-18T08:19:39Z",
   "currency": "USD",
   "summary": {
     "psp_count": 7,
@@ -45,6 +45,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T10:09:00Z"
       },
       "monetary_impact": {
@@ -71,6 +72,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T00:00:00Z"
       },
       "monetary_impact": {
@@ -97,6 +99,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T10:06:00Z"
       },
       "monetary_impact": {
@@ -123,6 +126,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T10:05:00Z"
       },
       "ledger_record": {
@@ -138,6 +142,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T00:00:00Z"
       },
       "monetary_impact": {
@@ -164,6 +169,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T10:08:00Z"
       },
       "ledger_record": {
@@ -179,6 +185,7 @@
           "currency": "USD"
         },
         "status": "refunded",
+        "raw_status": "refunded",
         "timestamp": "2026-01-15T00:00:00Z"
       },
       "monetary_impact": {
@@ -205,6 +212,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T10:07:00Z"
       },
       "ledger_record": {
@@ -220,6 +228,7 @@
           "currency": "USD"
         },
         "status": "settled",
+        "raw_status": "settled",
         "timestamp": "2026-01-15T00:00:00Z"
       },
       "monetary_impact": {

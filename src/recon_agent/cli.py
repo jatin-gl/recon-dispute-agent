@@ -9,13 +9,13 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
 from pathlib import Path
 
 from pydantic import ValidationError
 
-from . import load_report
-from .models import Investigation, InvestigationReport
+from .models import Investigation, InvestigationReport, Report
 from .runtime import build_agent
 
 
@@ -28,13 +28,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="write output here instead of stdout")
     args = parser.parse_args(argv)
 
+    # The report is always JSON here (a file we read, or stdin) — parse it
+    # directly rather than routing already-read content through a path heuristic,
+    # which would misread BOM-prefixed content as a filename.
     try:
         raw = sys.stdin.read() if args.report == "-" else Path(args.report).read_text()
     except OSError as exc:
         print(f"error: cannot read report: {exc}", file=sys.stderr)
         return 1
+    raw = raw.lstrip("\ufeff")  # tolerate a UTF-8 BOM
     try:
-        report = load_report(raw)
+        report = Report.model_validate_json(raw)
     except ValidationError as exc:
         print(f"error: invalid report ({exc.error_count()} validation error(s))", file=sys.stderr)
         return 1
@@ -44,10 +48,22 @@ def main(argv: list[str] | None = None) -> int:
 
     rendered = result.model_dump_json(indent=2) if args.format == "json" else _text(result)
     if args.out:
-        Path(args.out).write_text(rendered + ("\n" if not rendered.endswith("\n") else ""))
+        Path(args.out).write_text(
+            rendered + ("\n" if not rendered.endswith("\n") else ""), encoding="utf-8"
+        )
     else:
-        print(rendered)
+        _print_utf8(rendered)
     return 0
+
+
+def _print_utf8(text: str) -> None:
+    """Print without crashing on a non-UTF-8 stdout (the ⚠/✓ glyphs)."""
+    with contextlib.suppress(AttributeError, ValueError):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        sys.stdout.buffer.write((text + "\n").encode("utf-8", "replace"))
 
 
 def _text(result: InvestigationReport) -> str:
