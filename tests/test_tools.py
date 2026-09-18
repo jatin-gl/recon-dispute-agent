@@ -25,7 +25,7 @@ def test_knowledge_unknown_key_returns_not_found():
 
 def test_registry_executes_investigation_tool():
     kb = KnowledgeBase.default()
-    registry = ToolRegistry(investigation_tools(kb) + [SUBMIT_RESOLUTION])
+    registry = ToolRegistry([*investigation_tools(kb), SUBMIT_RESOLUTION])
     out = registry.execute("get_psp_transaction", {"reference": "TXN-1005"})
     assert out["found"] is True
     assert out["fee_minor"] == 500
@@ -37,7 +37,7 @@ def test_registry_unknown_tool():
 
 
 def test_terminal_tools_are_not_executed():
-    registry = ToolRegistry(investigation_tools(KnowledgeBase.default()) + [SUBMIT_RESOLUTION])
+    registry = ToolRegistry([*investigation_tools(KnowledgeBase.default()), SUBMIT_RESOLUTION])
     out = registry.execute("submit_resolution", {"root_cause": "TIMING_LAG"})
     assert "error" in out  # terminal tools are captured by the loop, not executed here
     assert SUBMIT_RESOLUTION.is_terminal
@@ -52,8 +52,16 @@ def test_tool_handler_exception_is_surfaced():
     assert "error" in out
 
 
-def test_tool_definitions_have_strict_schema():
-    registry = ToolRegistry(investigation_tools(KnowledgeBase.default()) + [SUBMIT_RESOLUTION])
+def test_tool_definitions_have_closed_schema():
+    registry = ToolRegistry([*investigation_tools(KnowledgeBase.default()), SUBMIT_RESOLUTION])
     for d in registry.definitions():
         assert d["input_schema"]["additionalProperties"] is False
         assert "required" in d["input_schema"]
+
+
+def test_terminal_tools_are_strict_but_read_tools_are_not():
+    # Terminal tools must be strict so the model's finalizing payload validates.
+    assert SUBMIT_RESOLUTION.definition().get("strict") is True
+    assert SUBMIT_VERIFICATION.definition().get("strict") is True
+    for tool in investigation_tools(KnowledgeBase.default()):
+        assert "strict" not in tool.definition()

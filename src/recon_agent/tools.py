@@ -27,18 +27,27 @@ class Tool:
     description: str
     input_schema: dict[str, Any]
     handler: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+    strict: bool = False
 
     @property
     def is_terminal(self) -> bool:
         return self.handler is None
 
     def definition(self) -> dict[str, Any]:
-        """The Anthropic tool definition (strict schema)."""
-        return {
+        """The Anthropic tool definition.
+
+        Terminal tools set ``strict`` so the model's finalizing tool input is
+        guaranteed to validate against the schema (valid enum values, all
+        required fields, no extras) — no defensive parsing of model output.
+        """
+        d: dict[str, Any] = {
             "name": self.name,
             "description": self.description,
             "input_schema": self.input_schema,
         }
+        if self.strict:
+            d["strict"] = True
+        return d
 
 
 class ToolRegistry:
@@ -131,6 +140,7 @@ SUBMIT_RESOLUTION = Tool(
         "required": ["root_cause", "confidence", "recommended_action", "rationale"],
         "additionalProperties": False,
     },
+    strict=True,
 )
 
 SUBMIT_VERIFICATION = Tool(
@@ -149,4 +159,5 @@ SUBMIT_VERIFICATION = Tool(
         "required": ["approved", "reason"],
         "additionalProperties": False,
     },
+    strict=True,
 )

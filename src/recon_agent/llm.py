@@ -23,6 +23,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
+from .models import RecommendedAction, RootCause
+
 DEFAULT_MODEL = "claude-opus-4-8"
 
 
@@ -104,8 +106,6 @@ def _block_to_dict(block: Any) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Offline client — deterministic rule-based stand-in
 # --------------------------------------------------------------------------- #
-from .models import RecommendedAction, RootCause  # noqa: E402  (avoid import cycle at top)
-
 _EVIDENCE_TOOLS = ("get_psp_transaction", "get_ledger_entry", "get_events")
 
 
@@ -168,7 +168,7 @@ class HeuristicClient:
             root_cause != RootCause.UNKNOWN.value
             and confidence >= 0.6
             and has_evidence
-            and not (action == RecommendedAction.MANUAL_REVIEW.value)
+            and action != RecommendedAction.MANUAL_REVIEW.value
         )
         reason = (
             f"Evidence supports root cause {root_cause} with confidence {confidence:.2f}."
@@ -303,18 +303,21 @@ def _first_json(messages: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
-    start = text.find("{")
-    while start != -1:
-        depth = 0
-        for i in range(start, len(text)):
-            if text[i] == "{":
-                depth += 1
-            elif text[i] == "}":
-                depth -= 1
-                if depth == 0:
-                    try:
-                        return json.loads(text[start : i + 1])
-                    except json.JSONDecodeError:
-                        break
-        start = text.find("{", start + 1)
+    """Return the first top-level JSON object embedded in ``text``.
+
+    Uses ``JSONDecoder.raw_decode`` rather than brace counting so that braces
+    appearing *inside* string values (e.g. an evidence line like
+    ``get_events(...) -> {"found": true}``) do not confuse the scan.
+    """
+    decoder = json.JSONDecoder()
+    idx = text.find("{")
+    while idx != -1:
+        try:
+            obj, _ = decoder.raw_decode(text, idx)
+        except json.JSONDecodeError:
+            idx = text.find("{", idx + 1)
+            continue
+        if isinstance(obj, dict):
+            return obj
+        idx = text.find("{", idx + 1)
     return None

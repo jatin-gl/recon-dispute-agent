@@ -30,5 +30,5 @@ def make_llm(mode: Mode) -> LLMClient:
 
 
 def build_agent(mode: Mode | None = None, knowledge: KnowledgeBase | None = None) -> DisputeAgent:
-    mode = mode or os.getenv("RECON_AGENT_MODE", "offline")
-    return DisputeAgent(llm=make_llm(mode), knowledge=knowledge or KnowledgeBase.default())
+    resolved: str = mode or os.getenv("RECON_AGENT_MODE") or "offline"
+    return DisputeAgent(llm=make_llm(resolved), knowledge=knowledge or KnowledgeBase.default())

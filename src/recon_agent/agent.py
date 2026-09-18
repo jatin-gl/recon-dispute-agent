@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from pydantic import ValidationError
+
 from .knowledge import KnowledgeBase
 from .llm import LLMClient
 from .models import (
@@ -65,7 +67,7 @@ class DisputeAgent:
         )
 
     def investigate(self, discrepancy: Discrepancy) -> Investigation:
-        registry = ToolRegistry(investigation_tools(self._kb) + [SUBMIT_RESOLUTION])
+        registry = ToolRegistry([*investigation_tools(self._kb), SUBMIT_RESOLUTION])
         content = [{"type": "text", "text": investigator_task(discrepancy.model_dump_json(indent=2))}]
 
         payload, evidence, steps = self._run_loop(
@@ -94,7 +96,7 @@ class DisputeAgent:
     def verify(
         self, discrepancy: Discrepancy, resolution: Resolution, evidence: list[str]
     ) -> VerificationResult:
-        registry = ToolRegistry(investigation_tools(self._kb) + [SUBMIT_VERIFICATION])
+        registry = ToolRegistry([*investigation_tools(self._kb), SUBMIT_VERIFICATION])
         context = {
             "discrepancy": json.loads(discrepancy.model_dump_json()),
             "resolution": json.loads(resolution.model_dump_json()),
@@ -107,7 +109,11 @@ class DisputeAgent:
         )
         if payload is None:
             return VerificationResult(approved=False, reason="verifier did not return a verdict")
-        return VerificationResult(**payload)
+        try:
+            return VerificationResult(**payload)
+        except (ValidationError, TypeError):
+            # A malformed verdict must fail closed: reject and escalate.
+            return VerificationResult(approved=False, reason="verifier returned a malformed verdict")
 
     # ------------------------------------------------------------------ #
     def _run_loop(
@@ -153,14 +159,32 @@ class DisputeAgent:
 
 
 def _resolution_from(payload: dict[str, Any] | None) -> Resolution:
+    """Build a Resolution from a terminal-tool payload, degrading safely.
+
+    ``None`` means the loop never called submit_resolution; a payload that fails
+    validation means the model produced something off-schema. Either way we fall
+    back to a low-confidence UNKNOWN/MANUAL_REVIEW so the finding is escalated
+    rather than dropped or crashing the run.
+    """
     if payload is None:
-        return Resolution(
-            root_cause=RootCause.UNKNOWN,
-            confidence=0.0,
-            recommended_action=RecommendedAction.MANUAL_REVIEW,
-            rationale="Investigation did not converge on a resolution within the step budget.",
+        return _manual_review_resolution(
+            "Investigation did not converge on a resolution within the step budget."
         )
-    return Resolution(**payload)
+    try:
+        return Resolution(**payload)
+    except (ValidationError, TypeError):
+        return _manual_review_resolution(
+            "Model returned a malformed resolution; escalating for human review."
+        )
+
+
+def _manual_review_resolution(rationale: str) -> Resolution:
+    return Resolution(
+        root_cause=RootCause.UNKNOWN,
+        confidence=0.0,
+        recommended_action=RecommendedAction.MANUAL_REVIEW,
+        rationale=rationale,
+    )
 
 
 def _result_block(tool_use_id: str, payload: dict[str, Any]) -> dict[str, Any]:

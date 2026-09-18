@@ -43,7 +43,7 @@ class KnowledgeBase:
         return {"found": True, "reference": reference, "events": rec.get("events", [])}
 
     @classmethod
-    def default(cls) -> "KnowledgeBase":
+    def default(cls) -> KnowledgeBase:
         """Dataset that explains the engine's example report discrepancies."""
         return cls(
             records={

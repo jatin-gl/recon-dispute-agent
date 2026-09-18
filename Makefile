@@ -4,7 +4,7 @@ PY ?= python3
 VENV := .venv
 BIN := $(VENV)/bin
 
-.PHONY: help venv install test run-example run-server docker clean
+.PHONY: help venv install test lint format run-example run-server docker clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -18,6 +18,13 @@ install: venv ## Install the package with dev extras
 
 test: ## Run the test suite
 	$(BIN)/pytest
+
+lint: ## Lint (ruff) and type-check (mypy)
+	$(BIN)/ruff check src tests
+	$(BIN)/mypy src/recon_agent
+
+format: ## Auto-fix lint findings
+	$(BIN)/ruff check --fix src tests
 
 run-example: ## Investigate the bundled sample report (offline mode)
 	$(BIN)/recon-agent tests/fixtures/example-report.json

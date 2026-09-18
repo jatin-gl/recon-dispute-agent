@@ -14,7 +14,7 @@ does floating-point arithmetic on amounts, matching the engine's guarantee.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -33,7 +33,7 @@ class Money(BaseModel):
         return f"{sign}{v // 100}.{v % 100:02d} {self.currency}"
 
 
-class DiscrepancyType(str, Enum):
+class DiscrepancyType(StrEnum):
     MISSING_IN_LEDGER = "MISSING_IN_LEDGER"
     MISSING_IN_PSP = "MISSING_IN_PSP"
     AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
@@ -44,7 +44,7 @@ class DiscrepancyType(str, Enum):
     DUPLICATE_IN_LEDGER = "DUPLICATE_IN_LEDGER"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -94,7 +94,7 @@ class Report(BaseModel):
 # --------------------------------------------------------------------------- #
 # Agent output
 # --------------------------------------------------------------------------- #
-class RootCause(str, Enum):
+class RootCause(StrEnum):
     """The taxonomy of reconciliation root causes the agent classifies into."""
 
     TIMING_LAG = "TIMING_LAG"  # settlement recorded on one side; other side lags
@@ -107,7 +107,7 @@ class RootCause(str, Enum):
     UNKNOWN = "UNKNOWN"  # evidence insufficient to classify
 
 
-class RecommendedAction(str, Enum):
+class RecommendedAction(StrEnum):
     NO_ACTION_TIMING = "NO_ACTION_TIMING"  # self-resolves next cycle; monitor
     DEDUPE_LEDGER_ENTRY = "DEDUPE_LEDGER_ENTRY"
     UPDATE_FEE_RECORD = "UPDATE_FEE_RECORD"

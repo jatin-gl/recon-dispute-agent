@@ -126,14 +126,32 @@ recommended action. See [`models.py`](src/recon_agent/models.py).
 ## Testing
 
 ```bash
-make test
+make test    # pytest (31 tests, no network)
+make lint    # ruff + mypy
 ```
 
 The suite drives the **real agent control flow** through the offline brain (no
 network): contract parsing, the tool registry and knowledge base, the full
 investigate→verify→escalate path over the engine's committed example report, the
-escalation-under-uncertainty guarantee, and — via an injected fake — the real
-Claude adapter's response parsing and request shaping.
+escalation-under-uncertainty guarantee, malformed-model-output resilience, robust
+JSON extraction, and — via an injected fake — the real Claude adapter's response
+parsing and request shaping. CI additionally runs `ruff` and `mypy` on Python
+3.11 and 3.12.
+
+## End-to-end with the engine
+
+The agent reads a report from a file or from stdin (`-`), so it composes directly
+with the engine in a single pipeline:
+
+```bash
+# in the payment-reconciliation-engine repo:
+reconcile --psp settlement.csv --ledger ledger.csv --format json \
+  | recon-agent -
+```
+
+The Go engine emits the discrepancy report; the Python agent investigates each
+finding and prints (or emits, with `--format json`) the resolution — reconciliation
+break to reasoned, verified recommendation in one command.
 
 ## Companion project
 

@@ -36,7 +36,11 @@ want for money movement.
 
 Finalizing via a **tool call** (`submit_resolution`) rather than free-text JSON
 means the payload is schema-validated by construction — no brittle parsing of the
-model's prose.
+model's prose. The terminal tools are declared `strict`, so the model's finalizing
+input is guaranteed to satisfy the schema (valid enum values, all required
+fields). As a belt-and-suspenders measure the agent also **fails closed**: if any
+payload nonetheless fails validation, it degrades to `UNKNOWN` / `MANUAL_REVIEW`
+and escalates rather than raising.
 
 ## The verifier loop
 

@@ -3,6 +3,7 @@
     recon-agent report.json                       # offline, text summary
     recon-agent report.json --mode anthropic       # use Claude (needs API key)
     recon-agent report.json --format json --out investigation.json
+    reconcile --format json | recon-agent -         # read the report from stdin
 """
 
 from __future__ import annotations
@@ -18,14 +19,14 @@ from .runtime import build_agent
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="recon-agent", description=__doc__)
-    parser.add_argument("report", help="path to an engine report JSON file")
+    parser.add_argument("report", help="path to an engine report JSON file, or '-' to read from stdin")
     parser.add_argument("--mode", choices=["offline", "anthropic"], default="offline",
                         help="agent brain: deterministic offline (default) or Claude-backed")
     parser.add_argument("--format", choices=["text", "json"], default="text")
     parser.add_argument("--out", help="write output here instead of stdout")
     args = parser.parse_args(argv)
 
-    report = load_report(Path(args.report))
+    report = load_report(sys.stdin.read()) if args.report == "-" else load_report(Path(args.report))
     agent = build_agent(args.mode)
     result = agent.run(report)
 
