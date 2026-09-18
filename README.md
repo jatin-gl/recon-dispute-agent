@@ -126,17 +126,20 @@ recommended action. See [`models.py`](src/recon_agent/models.py).
 ## Testing
 
 ```bash
-make test    # pytest (31 tests, no network)
+make test    # pytest (37 tests, no network)
 make lint    # ruff + mypy
 ```
 
 The suite drives the **real agent control flow** through the offline brain (no
-network): contract parsing, the tool registry and knowledge base, the full
-investigate→verify→escalate path over the engine's committed example report, the
-escalation-under-uncertainty guarantee, malformed-model-output resilience, robust
-JSON extraction, and — via an injected fake — the real Claude adapter's response
-parsing and request shaping. CI additionally runs `ruff` and `mypy` on Python
-3.11 and 3.12.
+network): contract parsing, forward-compatibility with unknown discrepancy
+types/severities, currency-exponent money rendering, the tool registry and
+knowledge base, the full investigate→verify→escalate path over the engine's
+committed example report, the escalation-under-uncertainty guarantee,
+malformed-model-output resilience, robust JSON extraction, the service's 502
+failure path, and — via a scripted fake SDK client — the **real Claude adapter
+driven through a full multi-turn tool loop** (thinking-block round-trip and
+`tool_result` pairing included). CI additionally runs `ruff` and `mypy` on
+Python 3.11 and 3.12.
 
 ## End-to-end with the engine
 

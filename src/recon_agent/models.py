@@ -16,21 +16,39 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, model_validator
 
 # --------------------------------------------------------------------------- #
 # Data contract (input) — see the engine's docs/data-contract.md
 # --------------------------------------------------------------------------- #
+# ISO-4217 currencies whose minor-unit exponent is not the default of 2.
+_MINOR_UNIT_DIGITS = {
+    # Zero-decimal (the amount is already in whole units).
+    "JPY": 0, "KRW": 0, "VND": 0, "CLP": 0, "ISK": 0, "XOF": 0, "XAF": 0,
+    "XPF": 0, "BIF": 0, "DJF": 0, "GNF": 0, "KMF": 0, "PYG": 0, "RWF": 0,
+    "UGX": 0, "VUV": 0,
+    # Three-decimal.
+    "BHD": 3, "KWD": 3, "OMR": 3, "TND": 3, "JOD": 3, "IQD": 3, "LYD": 3,
+}
+
+
 class Money(BaseModel):
     amount_minor: int
     currency: str
 
     def as_decimal(self) -> str:
-        """Human-readable rendering, e.g. 21650 -> '216.50'. Display only."""
+        """Human-readable rendering using the currency's minor-unit exponent.
+
+        e.g. 21650 USD -> '216.50 USD', 100 JPY -> '100 JPY', 1234 BHD ->
+        '1.234 BHD'. Display only — never for settlement math.
+        """
+        exp = _MINOR_UNIT_DIGITS.get(self.currency.upper(), 2)
         sign = "-" if self.amount_minor < 0 else ""
         v = abs(self.amount_minor)
-        return f"{sign}{v // 100}.{v % 100:02d} {self.currency}"
+        if exp == 0:
+            return f"{sign}{v} {self.currency}"
+        div = 10**exp
+        return f"{sign}{v // div}.{v % div:0{exp}d} {self.currency}"
 
 
 class DiscrepancyType(StrEnum):
@@ -42,6 +60,10 @@ class DiscrepancyType(StrEnum):
     CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
     DUPLICATE_IN_PSP = "DUPLICATE_IN_PSP"
     DUPLICATE_IN_LEDGER = "DUPLICATE_IN_LEDGER"
+    # Forward-compatibility sentinel: a type this version of the agent does not
+    # recognize (e.g. a new type added by a newer engine) is mapped here so the
+    # report still parses and the item is escalated rather than dropped.
+    OTHER = "OTHER"
 
 
 class Severity(StrEnum):
@@ -70,6 +92,36 @@ class Discrepancy(BaseModel):
     ledger_record: Transaction | None = None
     monetary_impact: Money
     detail: str
+    # Preserves the original type string when it was an unrecognized value coerced
+    # to OTHER, so a human still sees what the engine actually reported.
+    raw_type: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _tolerate_unknown_contract_values(cls, data: object) -> object:
+        """Keep an evolving contract from failing the whole report.
+
+        An unknown discrepancy ``type`` is mapped to OTHER (with the original
+        preserved in ``raw_type``) and an unknown ``severity`` is treated as HIGH.
+        Both force the item toward escalation instead of rejecting the entire
+        report because of one value this version doesn't know.
+        """
+        if not isinstance(data, dict):
+            return data
+        known_types = {e.value for e in DiscrepancyType}
+        t = data.get("type")
+        if isinstance(t, str) and t not in known_types:
+            data = {**data, "type": DiscrepancyType.OTHER.value, "raw_type": t}
+        known_sev = {e.value for e in Severity}
+        s = data.get("severity")
+        if isinstance(s, str) and s not in known_sev:
+            data = {**data, "severity": Severity.HIGH.value}
+        return data
+
+    @property
+    def type_label(self) -> str:
+        """The original type string when known, else the recognized enum value."""
+        return self.raw_type or self.type.value
 
 
 class Summary(BaseModel):

@@ -62,7 +62,7 @@ class AnthropicClient:
     conversation unchanged, as the API requires.
     """
 
-    def __init__(self, model: str = DEFAULT_MODEL, max_tokens: int = 4096, client: Any = None):
+    def __init__(self, model: str = DEFAULT_MODEL, max_tokens: int = 8192, client: Any = None):
         if client is None:
             import anthropic  # imported lazily so offline use needs no dependency at import time
 
@@ -78,7 +78,10 @@ class AnthropicClient:
             model=self._model,
             max_tokens=self._max_tokens,
             thinking={"type": "adaptive"},
-            system=system,
+            # The system prompt is stable across every turn of the loop, so mark it
+            # as a cache breakpoint: subsequent turns read it from cache instead of
+            # re-processing the full prefix each step.
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             tools=tools,
             messages=messages,
         )

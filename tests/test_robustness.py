@@ -93,6 +93,71 @@ def test_agent_survives_malformed_model_output_and_escalates():
     assert inv.escalated is True
 
 
+def test_unknown_discrepancy_type_does_not_reject_whole_report(agent, report):
+    # A newer engine emits a type this agent doesn't know. The whole report must
+    # still parse and every discrepancy must still be investigated.
+    import json as _json
+
+    from recon_agent import load_report
+
+    base = _json.loads(report.model_dump_json())
+    base["discrepancies"][0]["type"] = "CHARGEBACK_REVERSAL"
+    r = load_report(_json.dumps(base))
+
+    assert len(r.discrepancies) == len(report.discrepancies)
+    assert r.discrepancies[0].type.value == "OTHER"
+    assert r.discrepancies[0].type_label == "CHARGEBACK_REVERSAL"  # original preserved
+
+    result = agent.run(r)
+    assert len(result.investigations) == len(report.discrepancies)
+    inv0 = result.investigations[0]
+    assert inv0.discrepancy_type == "CHARGEBACK_REVERSAL"
+    assert inv0.escalated is True  # unrecognized type -> escalate, never a confident guess
+
+
+def test_unknown_severity_defaults_to_high():
+    from recon_agent.models import Discrepancy, Severity
+
+    d = Discrepancy.model_validate({
+        "id": "d", "type": "AMOUNT_MISMATCH", "severity": "apocalyptic",
+        "match_key": "K", "monetary_impact": {"amount_minor": 1, "currency": "USD"}, "detail": "x",
+    })
+    assert d.severity == Severity.HIGH
+
+
+class _VerifierFetchesEvidence:
+    """A verifier brain that fetches one piece of evidence before approving."""
+
+    def complete(self, system, messages, tools):
+        already = any(
+            b.get("type") == "tool_use" and b.get("name") == "get_events"
+            for m in messages
+            for b in (m.get("content") or [])
+            if isinstance(b, dict)
+        )
+        if not already:
+            return LLMResponse(
+                stop_reason="tool_use",
+                tool_calls=[ToolCall("v1", "get_events", {"reference": "TXN-1005"})],
+                assistant_content=[{"type": "tool_use", "id": "v1", "name": "get_events", "input": {"reference": "TXN-1005"}}],
+            )
+        return LLMResponse(
+            stop_reason="tool_use",
+            tool_calls=[ToolCall("v2", "submit_verification", {"approved": True, "reason": "re-checked events"})],
+            assistant_content=[{"type": "tool_use", "id": "v2", "name": "submit_verification", "input": {"approved": True, "reason": "re-checked events"}}],
+        )
+
+
+def test_verifier_gathered_evidence_is_recorded():
+    agent = DisputeAgent(
+        llm=HeuristicClient(),
+        verifier_llm=_VerifierFetchesEvidence(),
+        knowledge=KnowledgeBase.default(),
+    )
+    inv = agent.investigate(_sample_discrepancy())
+    assert any(e.startswith("[verifier]") and "get_events" in e for e in inv.evidence), inv.evidence
+
+
 def test_cli_reads_report_from_stdin(monkeypatch, capsys):
     from pathlib import Path
 

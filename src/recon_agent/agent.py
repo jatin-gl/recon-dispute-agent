@@ -74,7 +74,11 @@ class DisputeAgent:
             self._llm, INVESTIGATOR_SYSTEM, content, registry, "submit_resolution"
         )
         resolution = _resolution_from(payload)
-        verification = self.verify(discrepancy, resolution, evidence)
+        verification, verifier_evidence = self._verify_with_evidence(discrepancy, resolution, evidence)
+
+        # Preserve any evidence the verifier gathered itself, tagged so it's
+        # distinguishable from the investigator's trail.
+        all_evidence = evidence + [f"[verifier] {e}" for e in verifier_evidence]
 
         escalated = (
             not verification.approved
@@ -84,11 +88,11 @@ class DisputeAgent:
         return Investigation(
             discrepancy_id=discrepancy.id,
             match_key=discrepancy.match_key,
-            discrepancy_type=discrepancy.type.value,
+            discrepancy_type=discrepancy.type_label,
             severity=discrepancy.severity.value,
             resolution=resolution,
             verification=verification,
-            evidence=evidence,
+            evidence=all_evidence,
             escalated=escalated,
             steps=steps,
         )
@@ -96,6 +100,13 @@ class DisputeAgent:
     def verify(
         self, discrepancy: Discrepancy, resolution: Resolution, evidence: list[str]
     ) -> VerificationResult:
+        """Independently review a proposed resolution against its evidence."""
+        result, _ = self._verify_with_evidence(discrepancy, resolution, evidence)
+        return result
+
+    def _verify_with_evidence(
+        self, discrepancy: Discrepancy, resolution: Resolution, evidence: list[str]
+    ) -> tuple[VerificationResult, list[str]]:
         registry = ToolRegistry([*investigation_tools(self._kb), SUBMIT_VERIFICATION])
         context = {
             "discrepancy": json.loads(discrepancy.model_dump_json()),
@@ -104,16 +115,16 @@ class DisputeAgent:
         }
         content = [{"type": "text", "text": verifier_task(json.dumps(context, indent=2))}]
 
-        payload, _, _ = self._run_loop(
+        payload, verifier_evidence, _ = self._run_loop(
             self._verifier_llm, VERIFIER_SYSTEM, content, registry, "submit_verification"
         )
         if payload is None:
-            return VerificationResult(approved=False, reason="verifier did not return a verdict")
+            return VerificationResult(approved=False, reason="verifier did not return a verdict"), verifier_evidence
         try:
-            return VerificationResult(**payload)
+            return VerificationResult(**payload), verifier_evidence
         except (ValidationError, TypeError):
             # A malformed verdict must fail closed: reject and escalate.
-            return VerificationResult(approved=False, reason="verifier returned a malformed verdict")
+            return VerificationResult(approved=False, reason="verifier returned a malformed verdict"), verifier_evidence
 
     # ------------------------------------------------------------------ #
     def _run_loop(

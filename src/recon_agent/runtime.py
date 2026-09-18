@@ -13,15 +13,16 @@ seeded in-memory dataset so everything runs standalone.
 from __future__ import annotations
 
 import os
+from typing import Literal
 
 from .agent import DisputeAgent
 from .knowledge import KnowledgeBase
 from .llm import AnthropicClient, HeuristicClient, LLMClient
 
-Mode = str  # "offline" | "anthropic"
+Mode = Literal["offline", "anthropic"]
 
 
-def make_llm(mode: Mode) -> LLMClient:
+def make_llm(mode: str) -> LLMClient:
     if mode == "anthropic":
         return AnthropicClient()
     if mode == "offline":
@@ -30,5 +31,5 @@ def make_llm(mode: Mode) -> LLMClient:
 
 
 def build_agent(mode: Mode | None = None, knowledge: KnowledgeBase | None = None) -> DisputeAgent:
-    resolved: str = mode or os.getenv("RECON_AGENT_MODE") or "offline"
+    resolved = mode or os.getenv("RECON_AGENT_MODE") or "offline"
     return DisputeAgent(llm=make_llm(resolved), knowledge=knowledge or KnowledgeBase.default())

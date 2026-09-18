@@ -1,7 +1,7 @@
 {
-  "report_id": "rpt_1789710275243025000_1",
+  "report_id": "rpt_1789715656671239000_1",
   "contract_version": "1.0",
-  "generated_at": "2026-09-18T05:44:35Z",
+  "generated_at": "2026-09-18T07:14:16Z",
   "currency": "USD",
   "summary": {
     "psp_count": 7,
@@ -22,7 +22,7 @@
       "STATUS_MISMATCH": 1
     },
     "total_monetary_impact": {
-      "amount_minor": 21650,
+      "amount_minor": 30650,
       "currency": "USD"
     }
   },
@@ -48,10 +48,10 @@
         "timestamp": "2026-01-15T10:09:00Z"
       },
       "monetary_impact": {
-        "amount_minor": 9000,
+        "amount_minor": 18000,
         "currency": "USD"
       },
-      "detail": "match key \"TXN-1007\" appears 2 times in PSP settlement"
+      "detail": "match key \"TXN-1007\" appears 2 times in PSP settlement (total 180.00 USD)"
     },
     {
       "id": "disc_53cb732c0be7",

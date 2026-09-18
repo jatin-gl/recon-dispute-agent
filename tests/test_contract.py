@@ -13,8 +13,8 @@ def test_load_example_report(report: Report):
 def test_money_is_integer_minor_units(report: Report):
     total = report.summary.total_monetary_impact
     assert isinstance(total.amount_minor, int)
-    assert total.amount_minor == 21650
-    assert total.as_decimal() == "216.50 USD"
+    assert total.amount_minor == 30650
+    assert total.as_decimal() == "306.50 USD"
 
 
 def test_discrepancy_enums_parsed(report: Report):
@@ -47,3 +47,11 @@ def test_load_report_from_json_string():
 
 def test_negative_money_decimal():
     assert Money(amount_minor=-450, currency="EUR").as_decimal() == "-4.50 EUR"
+
+
+def test_money_decimal_respects_currency_exponent():
+    # Zero-decimal (JPY) and three-decimal (BHD) currencies must render correctly.
+    assert Money(amount_minor=100, currency="JPY").as_decimal() == "100 JPY"
+    assert Money(amount_minor=5000, currency="KRW").as_decimal() == "5000 KRW"
+    assert Money(amount_minor=1234, currency="BHD").as_decimal() == "1.234 BHD"
+    assert Money(amount_minor=-1, currency="BHD").as_decimal() == "-0.001 BHD"

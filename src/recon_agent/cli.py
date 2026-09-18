@@ -12,6 +12,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from . import load_report
 from .models import Investigation, InvestigationReport
 from .runtime import build_agent
@@ -26,7 +28,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="write output here instead of stdout")
     args = parser.parse_args(argv)
 
-    report = load_report(sys.stdin.read()) if args.report == "-" else load_report(Path(args.report))
+    try:
+        raw = sys.stdin.read() if args.report == "-" else Path(args.report).read_text()
+    except OSError as exc:
+        print(f"error: cannot read report: {exc}", file=sys.stderr)
+        return 1
+    try:
+        report = load_report(raw)
+    except ValidationError as exc:
+        print(f"error: invalid report ({exc.error_count()} validation error(s))", file=sys.stderr)
+        return 1
+
     agent = build_agent(args.mode)
     result = agent.run(report)
 

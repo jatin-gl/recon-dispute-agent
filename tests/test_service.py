@@ -32,3 +32,17 @@ def test_investigate_endpoint():
 def test_investigate_rejects_malformed_report():
     resp = client.post("/v1/investigate", json={"not": "a report"})
     assert resp.status_code == 422  # pydantic validation error
+
+
+def test_investigate_returns_502_on_agent_failure(monkeypatch):
+    # If the agent backend fails (e.g. Claude unreachable in anthropic mode), the
+    # endpoint returns a clean 502 rather than a 500 traceback.
+    class BoomAgent:
+        def run(self, report):
+            raise RuntimeError("claude backend unreachable")
+
+    monkeypatch.setattr("recon_agent.service.build_agent", lambda **kw: BoomAgent())
+    payload = json.loads((FIXTURES / "example-report.json").read_text())
+    resp = client.post("/v1/investigate", json=payload)
+    assert resp.status_code == 502
+    assert "agent execution failed" in resp.json()["detail"]

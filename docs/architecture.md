@@ -68,3 +68,11 @@ The input types in `models.py` mirror the
 floating-point math to an amount. `tests/fixtures/example-report.json` is a
 verbatim copy of the engine's committed example output, so the two projects are
 tested against the same bytes.
+
+**Forward compatibility.** The contract will evolve — a newer engine may emit a
+discrepancy type this version of the agent doesn't know. Parsing is therefore
+lenient: an unrecognized `type` is mapped to an `OTHER` sentinel (the original
+string preserved in `raw_type` and surfaced in the output), and an unrecognized
+`severity` is treated as `high`. Both push the item toward escalation rather than
+failing the whole report — one unknown value never drops the findings the agent
+*does* understand. See `Discrepancy._tolerate_unknown_contract_values`.
